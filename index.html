@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>세 곡 동시재생 퀴즈</title>
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --panel: #ffffff;
+      --text: #171923;
+      --muted: #697386;
+      --line: #e4e7ec;
+      --accent: #6c4dff;
+      --accent-dark: #5638e8;
+      --danger: #d92d20;
+      --success: #027a48;
+      --shadow: 0 12px 32px rgba(17, 24, 39, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Pretendard, "Noto Sans KR", system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(108,77,255,.12), transparent 30rem),
+        var(--bg);
+    }
+
+    button, input { font: inherit; }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 36px auto 60px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(27px, 4vw, 42px);
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status {
+      white-space: nowrap;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,.8);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(228,231,236,.9);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    .song-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .song-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fcfcfd;
+    }
+
+    .song-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 13px;
+      font-size: 17px;
+    }
+
+    .number {
+      width: 27px;
+      height: 27px;
+      display: inline-grid;
+      place-items: center;
+      color: white;
+      background: var(--accent);
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      height: 43px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 0 12px;
+      background: white;
+      outline: none;
+      transition: .15s ease;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,77,255,.13);
+    }
+
+    .inline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .volume-row {
+      display: grid;
+      grid-template-columns: 1fr 38px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .vol-value {
+      text-align: right;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+
+
+    .preset-bar {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto auto auto;
+      align-items: end;
+      gap: 10px;
+    }
+
+    .preset-field label {
+      margin-top: 0;
+    }
+
+    select {
+      width: 100%;
+      height: 45px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 12px;
+      background: white;
+      color: var(--text);
+      outline: none;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,77,255,.13);
+    }
+
+    .answer-box {
+      display: none;
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px dashed rgba(108,77,255,.45);
+      border-radius: 14px;
+      background: rgba(108,77,255,.06);
+      line-height: 1.65;
+    }
+
+    .answer-box.show {
+      display: block;
+    }
+
+    .answer-box strong {
+      color: var(--accent-dark);
+    }
+
+    .player-cover {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      text-align: center;
+      color: #f8f8fb;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(108,77,255,.45), transparent 32%),
+        linear-gradient(145deg, #16171b, #292b31);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      transition: opacity .2s ease, visibility .2s ease;
+    }
+
+    .player-cover.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .player-cover span {
+      display: block;
+      margin-top: 8px;
+      color: #b8bdca;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      min-height: 45px;
+      border: 0;
+      border-radius: 12px;
+      padding: 0 16px;
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform .08s ease, background .15s ease, opacity .15s ease;
+    }
+
+    button:active { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+
+    .primary { color: white; background: var(--accent); }
+    .primary:hover:not(:disabled) { background: var(--accent-dark); }
+    .secondary { color: var(--text); background: #eef0f4; }
+    .secondary:hover:not(:disabled) { background: #e3e6eb; }
+    .danger { color: var(--danger); background: #fff0ee; }
+
+    .master-volume {
+      margin-left: auto;
+      width: min(270px, 100%);
+      display: grid;
+      grid-template-columns: auto 1fr 38px;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .players {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .player-shell {
+      overflow: hidden;
+      border-radius: 16px;
+      background: #101114;
+      aspect-ratio: 16 / 9;
+      position: relative;
+    }
+
+    .player-shell > div,
+    .player-shell iframe {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .placeholder {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: #a7acb7;
+      padding: 20px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .message {
+      min-height: 24px;
+      margin: 14px 2px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .message.error { color: var(--danger); }
+    .message.ok { color: var(--success); }
+
+    .local-warning {
+      display: none;
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border: 1px solid #f4c7c3;
+      border-radius: 16px;
+      background: #fff4f2;
+      color: #9a241b;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .local-warning strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 16px;
+    }
+
+    details {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #f0f1f5;
+    }
+
+    @media (max-width: 850px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .song-grid, .players { grid-template-columns: 1fr; }
+      .preset-bar { grid-template-columns: 1fr 1fr; }
+      .preset-field { grid-column: 1 / -1; }
+      .master-volume { margin-left: 0; }
+    }
+
+    @media (max-width: 520px) {
+      .wrap { width: min(100% - 20px, 1180px); margin-top: 20px; }
+      .panel { padding: 14px; border-radius: 17px; }
+      .controls > button { flex: 1 1 calc(50% - 10px); }
+      .preset-bar > button { width: 100%; }
+      .master-volume { flex-basis: 100%; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div>
+        <h1>🎧 세 곡 동시재생 퀴즈</h1>
+        <p class="subtitle">미리 준비된 6개 라운드에서 세 곡을 동시에 재생하세요.</p>
+      </div>
+      <div class="status" id="status">YouTube API 불러오는 중…</div>
+    </header>
+
+    <div class="local-warning" id="localWarning">
+      <strong>이 파일은 휴대폰에서 직접 열 수 없어요.</strong>
+      유튜브 오류 153을 피하려면 이 HTML을 GitHub Pages 같은 HTTPS 웹 주소에 올린 뒤 접속해야 합니다.
+    </div>
+
+    <section class="panel">
+      <div class="preset-bar">
+        <div class="preset-field">
+          <label for="roundSelect">퀴즈 라운드</label>
+          <select id="roundSelect"></select>
+        </div>
+        <button class="primary" id="applyPresetBtn">라운드 불러오기</button>
+        <button class="secondary" id="nextRoundBtn">다음 라운드</button>
+        <button class="secondary" id="revealBtn">정답 보기</button>
+      </div>
+      <div class="answer-box" id="answerBox"></div>
+    </section>
+
+    <section class="panel">
+      <div class="song-grid" id="songGrid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="controls">
+        <button class="primary" id="loadBtn" disabled>영상 3개 불러오기</button>
+        <button class="primary" id="playBtn" disabled>▶ 동시에 재생</button>
+        <button class="secondary" id="pauseBtn" disabled>Ⅱ 일시정지</button>
+        <button class="secondary" id="restartBtn" disabled>↺ 시작점으로</button>
+        <button class="danger" id="stopBtn" disabled>■ 정지</button>
+        <button class="secondary" id="coverBtn">👁 영상 보기</button>
+
+        <div class="master-volume">
+          <span>전체 음량</span>
+          <input type="range" id="masterVolume" min="0" max="100" value="100" />
+          <span class="vol-value" id="masterVolumeValue">100</span>
+        </div>
+      </div>
+      <p class="message" id="message">링크를 입력한 다음 영상을 불러오세요.</p>
+    </section>
+
+    <section class="panel">
+      <div class="players" id="players">
+        <div class="player-shell"><div class="placeholder">영상 1</div><div id="player-0"></div><div class="player-cover">🎵 영상 1<span>정답 노출 방지를 위해 가려져 있어요</span></div></div>
+        <div class="player-shell"><div class="placeholder">영상 2</div><div id="player-1"></div><div class="player-cover">🎵 영상 2<span>정답 노출 방지를 위해 가려져 있어요</span></div></div>
+        <div class="player-shell"><div class="placeholder">영상 3</div><div id="player-2"></div><div class="player-cover">🎵 영상 3<span>정답 노출 방지를 위해 가려져 있어요</span></div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary>사용 팁 / 제한 사항</summary>
+        <p>
+          시작 시간은 <code>90</code>, <code>1:30</code>, <code>1m30s</code>처럼 입력할 수 있습니다.
+          영상마다 앞부분의 정답 노출 구간을 피해서 시작 지점을 잡아두면 편합니다.
+          기본 영상 가림막을 켜둔 상태라 제목과 썸네일은 보이지 않습니다.
+        </p>
+        <p>
+          네트워크 상태와 광고·버퍼링 때문에 세 영상이 아주 미세하게 어긋날 수 있습니다.
+          임베드가 제한된 영상, 연령 제한 영상, 비공개 영상은 재생되지 않을 수 있습니다.
+        </p>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    const SONG_COUNT = 3;
+
+    const PRESETS = [
+      {
+        label: "라운드 1 · 요청곡 + 유명곡",
+        songs: [
+          { title: "너의 의미 — IU (아이유)", url: "https://www.youtube.com/watch?v=mcnFWBLrdCs", start: "0:15" },
+          { title: "예뻤어 — DAY6", url: "https://www.youtube.com/watch?v=BS7tz2rAOSA", start: "0:00" },
+          { title: "고백 — 델리스파이스", url: "https://www.youtube.com/watch?v=Wlps3G2RYIU", start: "0:00" }
+        ]
+      },
+      {
+        label: "라운드 2 · 요청곡 + 유명곡",
+        songs: [
+          { title: "Ling Ling — 검정치마", url: "https://www.youtube.com/watch?v=u9S7ncAOz6I", start: "0:00" },
+          { title: "Smells Like Teen Spirit — Nirvana", url: "https://www.youtube.com/watch?v=hTWKbfoikeg", start: "0:00" },
+          { title: "항성통신 — 너드커넥션", url: "https://www.youtube.com/watch?v=jv4ffkt4NF8", start: "0:00" }
+        ]
+      },
+      {
+        label: "라운드 3 · 요청곡 + 유명곡",
+        songs: [
+          { title: "Loveholic — 러브홀릭", url: "https://www.youtube.com/watch?v=mTzygApv1SM", start: "0:00" },
+          { title: "챠우챠우 — 델리스파이스", url: "https://www.youtube.com/watch?v=0XbHhKpDpuI", start: "0:00" },
+          { title: "주저하는 연인들을 위해 — 잔나비", url: "https://www.youtube.com/watch?v=GpQ222I1ULc", start: "0:00" }
+        ]
+      },
+      {
+        label: "라운드 4 · 유명 밴드곡",
+        songs: [
+          { title: "한 페이지가 될 수 있게 — DAY6", url: "https://www.youtube.com/watch?v=vnS_jn2uibs", start: "0:00" },
+          { title: "나는 나비 — YB", url: "https://www.youtube.com/watch?v=W5DaNbDwpws", start: "0:00" },
+          { title: "Don't Look Back In Anger — Oasis", url: "https://www.youtube.com/watch?v=r8OipmKFDeM", start: "0:00" }
+        ]
+      },
+      {
+        label: "라운드 5 · 국내외 인기곡",
+        songs: [
+          { title: "Viva La Vida — Coldplay", url: "https://www.youtube.com/watch?v=dvgZkm1xWPE", start: "0:00" },
+          { title: "REDRED — CORTIS (코르티스)", url: "https://www.youtube.com/watch?v=tSSI7ntBKIs", start: "0:00" },
+          { title: "Marigold — Aimyon", url: "https://www.youtube.com/watch?v=0xSiBpUdW4E", start: "0:00" }
+        ]
+      },
+      {
+        label: "라운드 6 · 이동한 요청곡",
+        songs: [
+          { title: "Antifreeze — 검정치마", url: "https://www.youtube.com/watch?v=PGADim6UzHE", start: "0:00" },
+          { title: "If I Had A Gun… — Noel Gallagher's High Flying Birds", url: "https://www.youtube.com/watch?v=q0QMhSLg0t0", start: "0:00" },
+          { title: "Pretender — OFFICIAL HIGE DANDISM", url: "https://www.youtube.com/watch?v=TQ8WlA2GXbk", start: "0:00" }
+        ]
+      }
+    ];
+    const players = Array(SONG_COUNT).fill(null);
+    const ready = Array(SONG_COUNT).fill(false);
+    let apiReady = false;
+    const isHosted = /^https?:$/.test(location.protocol);
+    let loadGeneration = 0;
+
+    const $ = (selector) => document.querySelector(selector);
+    const statusEl = $("#status");
+    const messageEl = $("#message");
+    const loadBtn = $("#loadBtn");
+    const playBtn = $("#playBtn");
+    const pauseBtn = $("#pauseBtn");
+    const restartBtn = $("#restartBtn");
+    const stopBtn = $("#stopBtn");
+    const roundSelect = $("#roundSelect");
+    const applyPresetBtn = $("#applyPresetBtn");
+    const nextRoundBtn = $("#nextRoundBtn");
+    const revealBtn = $("#revealBtn");
+    const answerBox = $("#answerBox");
+    const coverBtn = $("#coverBtn");
+    let coversHidden = false;
+
+
+    function buildPresetOptions() {
+      roundSelect.innerHTML = PRESETS.map((preset, index) =>
+        `<option value="${index}">${preset.label}</option>`
+      ).join("");
+    }
+
+    function renderAnswer(index) {
+      const preset = PRESETS[index];
+      answerBox.innerHTML = `<strong>${preset.label} 정답</strong><br>` +
+        preset.songs.map((song, i) => `${i + 1}. ${song.title}`).join("<br>");
+    }
+
+    function applyPreset(index, autoLoad = true) {
+      const preset = PRESETS[index];
+      if (!preset) return;
+
+      roundSelect.value = String(index);
+      preset.songs.forEach((song, i) => {
+        $(`#url-${i}`).value = song.url;
+        $(`#start-${i}`).value = song.start;
+        $(`#volume-${i}`).value = "70";
+        $(`#volume-value-${i}`).textContent = "70";
+      });
+
+      answerBox.classList.remove("show");
+      revealBtn.textContent = "정답 보기";
+      renderAnswer(index);
+      saveState();
+
+      if (autoLoad && apiReady && isHosted) {
+        loadVideos();
+      } else {
+        setMessage(`${preset.label}이 세팅되었습니다. 영상을 불러오세요.`, "ok");
+      }
+    }
+
+    function toggleAnswer() {
+      const showing = answerBox.classList.toggle("show");
+      revealBtn.textContent = showing ? "정답 숨기기" : "정답 보기";
+    }
+
+    function toggleCovers() {
+      coversHidden = !coversHidden;
+      document.querySelectorAll(".player-cover").forEach(el => {
+        el.classList.toggle("hidden", coversHidden);
+      });
+      coverBtn.textContent = coversHidden ? "🙈 영상 가리기" : "👁 영상 보기";
+    }
+
+    function buildInputs() {
+      const grid = $("#songGrid");
+      grid.innerHTML = Array.from({ length: SONG_COUNT }, (_, i) => `
+        <article class="song-card">
+          <h2 class="song-title"><span class="number">${i + 1}</span> 영상 ${i + 1}</h2>
+          <label for="url-${i}">유튜브 링크</label>
+          <input id="url-${i}" type="text" inputmode="url"
+            placeholder="https://youtu.be/..." autocomplete="off" />
+
+          <div class="inline">
+            <div>
+              <label for="start-${i}">시작 시간</label>
+              <input id="start-${i}" type="text" placeholder="0:00" value="0:00" />
+            </div>
+            <div>
+              <label for="volume-${i}">개별 음량</label>
+              <div class="volume-row">
+                <input id="volume-${i}" type="range" min="0" max="100" value="70" />
+                <span class="vol-value" id="volume-value-${i}">70</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      `).join("");
+
+      for (let i = 0; i < SONG_COUNT; i++) {
+        $(`#volume-${i}`).addEventListener("input", (e) => {
+          $(`#volume-value-${i}`).textContent = e.target.value;
+          applyVolume(i);
+          saveState();
+        });
+        $(`#url-${i}`).addEventListener("change", saveState);
+        $(`#start-${i}`).addEventListener("change", saveState);
+      }
+    }
+
+    function setMessage(text, type = "") {
+      messageEl.textContent = text;
+      messageEl.className = `message ${type}`.trim();
+    }
+
+    function parseVideoId(input) {
+      const raw = input.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+
+      let url;
+      try {
+        url = new URL(raw.includes("://") ? raw : `https://${raw}`);
+      } catch {
+        return null;
+      }
+
+      const host = url.hostname.replace(/^www\./, "");
+      if (host === "youtu.be") {
+        return url.pathname.split("/").filter(Boolean)[0] || null;
+      }
+
+      if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+        if (url.searchParams.get("v")) return url.searchParams.get("v");
+        const parts = url.pathname.split("/").filter(Boolean);
+        const markerIndex = parts.findIndex(p => ["embed", "shorts", "live"].includes(p));
+        if (markerIndex >= 0 && parts[markerIndex + 1]) return parts[markerIndex + 1];
+      }
+
+      return null;
+    }
+
+    function parseTime(value) {
+      const input = String(value || "").trim().toLowerCase();
+      if (!input) return 0;
+
+      if (/^\d+(\.\d+)?$/.test(input)) return Math.max(0, Number(input));
+
+      if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(input)) {
+        const parts = input.split(":").map(Number);
+        if (parts.length === 2) return Math.max(0, parts[0] * 60 + parts[1]);
+        return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+      }
+
+      const match = input.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+      if (match && match[0]) {
+        return Number(match[1] || 0) * 3600
+          + Number(match[2] || 0) * 60
+          + Number(match[3] || 0);
+      }
+
+      return NaN;
+    }
+
+    function getStartTime(i) {
+      return parseTime($(`#start-${i}`).value);
+    }
+
+    function allReady() {
+      return ready.every(Boolean);
+    }
+
+    function updateButtons() {
+      const usable = apiReady && allReady();
+      loadBtn.disabled = !apiReady;
+      playBtn.disabled = !usable;
+      pauseBtn.disabled = !usable;
+      restartBtn.disabled = !usable;
+      stopBtn.disabled = !usable;
+
+      if (!apiReady) {
+        statusEl.textContent = "YouTube API 불러오는 중…";
+      } else {
+        const count = ready.filter(Boolean).length;
+        statusEl.textContent = count === SONG_COUNT
+          ? "3개 영상 준비 완료"
+          : `준비 ${count} / ${SONG_COUNT}`;
+      }
+    }
+
+    function getIndividualVolume(i) {
+      return Number($(`#volume-${i}`).value);
+    }
+
+    function applyVolume(i) {
+      const player = players[i];
+      if (!player || !ready[i] || typeof player.setVolume !== "function") return;
+      const master = Number($("#masterVolume").value) / 100;
+      player.setVolume(Math.round(getIndividualVolume(i) * master));
+    }
+
+    function applyAllVolumes() {
+      for (let i = 0; i < SONG_COUNT; i++) applyVolume(i);
+    }
+
+    function createOrLoadPlayer(i, videoId, generation) {
+      ready[i] = false;
+      const startSeconds = getStartTime(i);
+
+      if (players[i] && typeof players[i].destroy === "function") {
+        players[i].destroy();
+        players[i] = null;
+      }
+
+      const shell = document.getElementById(`player-${i}`).parentElement;
+      const oldPlaceholder = shell.querySelector(".placeholder");
+      if (oldPlaceholder) oldPlaceholder.remove();
+
+      // destroy() removes the target node, so recreate it.
+      let target = document.getElementById(`player-${i}`);
+      if (!target) {
+        target = document.createElement("div");
+        target.id = `player-${i}`;
+        shell.appendChild(target);
+      }
+
+      players[i] = new YT.Player(`player-${i}`, {
+        videoId,
+        playerVars: {
+          playsinline: 1,
+          controls: 1,
+          rel: 0,
+          start: Math.floor(startSeconds),
+          ...(isHosted ? { origin: location.origin } : {})
+        },
+        events: {
+          onReady: (event) => {
+            if (generation !== loadGeneration) return;
+            ready[i] = true;
+            event.target.pauseVideo();
+            event.target.seekTo(startSeconds, true);
+            applyVolume(i);
+            updateButtons();
+
+            if (allReady()) {
+              setMessage("준비 완료! ‘동시에 재생’을 누르면 세 곡이 시작됩니다.", "ok");
+            }
+          },
+          onError: (event) => {
+            if (generation !== loadGeneration) return;
+            ready[i] = false;
+            updateButtons();
+            const labels = {
+              2: "잘못된 영상 ID",
+              5: "HTML5 플레이어 오류",
+              100: "삭제·비공개 영상",
+              101: "외부 재생이 제한된 영상",
+              150: "외부 재생이 제한된 영상"
+            };
+            setMessage(`영상 ${i + 1} 오류: ${labels[event.data] || `코드 ${event.data}`}`, "error");
+          }
+        }
+      });
+    }
+
+    function loadVideos() {
+      const ids = [];
+      const starts = [];
+
+      for (let i = 0; i < SONG_COUNT; i++) {
+        const id = parseVideoId($(`#url-${i}`).value);
+        const start = getStartTime(i);
+
+        if (!id) {
+          setMessage(`영상 ${i + 1}의 유튜브 링크를 확인해주세요.`, "error");
+          $(`#url-${i}`).focus();
+          return;
+        }
+        if (!Number.isFinite(start)) {
+          setMessage(`영상 ${i + 1}의 시작 시간을 확인해주세요. 예: 1:30`, "error");
+          $(`#start-${i}`).focus();
+          return;
+        }
+
+        ids.push(id);
+        starts.push(start);
+      }
+
+      loadGeneration++;
+      const generation = loadGeneration;
+      ready.fill(false);
+      updateButtons();
+      setMessage("영상 3개를 불러오는 중입니다…");
+      saveState();
+
+      ids.forEach((id, i) => createOrLoadPlayer(i, id, generation));
+    }
+
+    function prepareAndPlay() {
+      if (!allReady()) return;
+
+      // 모두 시작 위치로 맞춘 뒤, 짧은 준비 시간을 주고 같은 타이머에서 재생한다.
+      for (let i = 0; i < SONG_COUNT; i++) {
+        players[i].pauseVideo();
+        players[i].seekTo(getStartTime(i), true);
+        applyVolume(i);
+      }
+
+      setMessage("재생 준비…");
+      setTimeout(() => {
+        players.forEach(player => player.playVideo());
+        setMessage("세 곡을 동시에 재생 중입니다.", "ok");
+      }, 450);
+    }
+
+    function pauseAll() {
+      players.forEach(player => player?.pauseVideo?.());
+      setMessage("일시정지했습니다.");
+    }
+
+    function restartAll() {
+      for (let i = 0; i < SONG_COUNT; i++) {
+        players[i]?.pauseVideo?.();
+        players[i]?.seekTo?.(getStartTime(i), true);
+      }
+      setMessage("세 영상을 시작 지점으로 되돌렸습니다.");
+    }
+
+    function stopAll() {
+      players.forEach(player => player?.stopVideo?.());
+      setMessage("재생을 정지했습니다.");
+    }
+
+    function saveState() {
+      const state = {
+        urls: Array.from({ length: SONG_COUNT }, (_, i) => $(`#url-${i}`)?.value || ""),
+        starts: Array.from({ length: SONG_COUNT }, (_, i) => $(`#start-${i}`)?.value || "0:00"),
+        volumes: Array.from({ length: SONG_COUNT }, (_, i) => $(`#volume-${i}`)?.value || "70"),
+        masterVolume: $("#masterVolume")?.value || "100",
+        presetIndex: Number(roundSelect?.value || 0)
+      };
+      localStorage.setItem("three-song-quiz-presets-v3", JSON.stringify(state));
+    }
+
+    function restoreState() {
+      try {
+        const state = JSON.parse(localStorage.getItem("three-song-quiz-presets-v3") || "null");
+        if (!state) return;
+        for (let i = 0; i < SONG_COUNT; i++) {
+          $(`#url-${i}`).value = state.urls?.[i] || "";
+          $(`#start-${i}`).value = state.starts?.[i] || "0:00";
+          $(`#volume-${i}`).value = state.volumes?.[i] || "70";
+          $(`#volume-value-${i}`).textContent = $(`#volume-${i}`).value;
+        }
+        $("#masterVolume").value = state.masterVolume || "100";
+        $("#masterVolumeValue").textContent = $("#masterVolume").value;
+        const presetIndex = Number.isInteger(state.presetIndex) ? state.presetIndex : 0;
+        roundSelect.value = String(Math.min(Math.max(presetIndex, 0), PRESETS.length - 1));
+        renderAnswer(Number(roundSelect.value));
+      } catch {
+        localStorage.removeItem("three-song-quiz-presets-v3");
+      }
+    }
+
+    window.onYouTubeIframeAPIReady = function () {
+      apiReady = true;
+
+      if (!isHosted) {
+        document.getElementById("localWarning").style.display = "block";
+        updateButtons();
+        loadBtn.disabled = true;
+        statusEl.textContent = "웹 배포 필요";
+        setMessage("오류 153 방지를 위해 HTTPS 웹 주소로 열어주세요.", "error");
+        return;
+      }
+
+      updateButtons();
+      setMessage("링크를 입력한 다음 영상을 불러오세요.");
+    };
+
+    buildInputs();
+    buildPresetOptions();
+    applyPreset(0, false);
+    if (!isHosted) {
+      document.getElementById("localWarning").style.display = "block";
+    }
+    restoreState();
+    updateButtons();
+
+    loadBtn.addEventListener("click", loadVideos);
+    playBtn.addEventListener("click", prepareAndPlay);
+    pauseBtn.addEventListener("click", pauseAll);
+    restartBtn.addEventListener("click", restartAll);
+    stopBtn.addEventListener("click", stopAll);
+    applyPresetBtn.addEventListener("click", () => applyPreset(Number(roundSelect.value), true));
+    nextRoundBtn.addEventListener("click", () => {
+      const next = (Number(roundSelect.value) + 1) % PRESETS.length;
+      applyPreset(next, true);
+    });
+    revealBtn.addEventListener("click", toggleAnswer);
+    coverBtn.addEventListener("click", toggleCovers);
+    roundSelect.addEventListener("change", () => {
+      renderAnswer(Number(roundSelect.value));
+      answerBox.classList.remove("show");
+      revealBtn.textContent = "정답 보기";
+      saveState();
+    });
+
+    $("#masterVolume").addEventListener("input", (e) => {
+      $("#masterVolumeValue").textContent = e.target.value;
+      applyAllVolumes();
+      saveState();
+    });
+
+    window.addEventListener("beforeunload", saveState);
+
+    const apiScript = document.createElement("script");
+    apiScript.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(apiScript);
+  </script>
+</body>
+</html>
