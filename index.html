@@ -462,7 +462,7 @@
         label: "라운드 2 · 요청곡 + 유명곡",
         songs: [
           { title: "Ling Ling — 검정치마", url: "https://www.youtube.com/watch?v=u9S7ncAOz6I", start: "0:00" },
-          { title: "Smells Like Teen Spirit — Nirvana", url: "https://www.youtube.com/watch?v=hTWKbfoikeg", start: "0:00" },
+          { title: "LADY — Kenshi Yonezu (요네즈 켄시)", url: "https://www.youtube.com/watch?v=DdF-u3fe5pg", start: "0:00" },
           { title: "항성통신 — 너드커넥션", url: "https://www.youtube.com/watch?v=jv4ffkt4NF8", start: "0:00" }
         ]
       },
@@ -837,12 +837,12 @@
         masterVolume: $("#masterVolume")?.value || "100",
         presetIndex: Number(roundSelect?.value || 0)
       };
-      localStorage.setItem("three-song-quiz-presets-v3", JSON.stringify(state));
+      localStorage.setItem("three-song-quiz-presets-v4", JSON.stringify(state));
     }
 
     function restoreState() {
       try {
-        const state = JSON.parse(localStorage.getItem("three-song-quiz-presets-v3") || "null");
+        const state = JSON.parse(localStorage.getItem("three-song-quiz-presets-v4") || "null");
         if (!state) return;
         for (let i = 0; i < SONG_COUNT; i++) {
           $(`#url-${i}`).value = state.urls?.[i] || "";
@@ -856,7 +856,7 @@
         roundSelect.value = String(Math.min(Math.max(presetIndex, 0), PRESETS.length - 1));
         renderAnswer(Number(roundSelect.value));
       } catch {
-        localStorage.removeItem("three-song-quiz-presets-v3");
+        localStorage.removeItem("three-song-quiz-presets-v4");
       }
     }
 
